@@ -2,10 +2,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# SQLite URL
+# SQLite URL - this will create a file named 'products.db'
 SQLALCHEMY_DATABASE_URL = "sqlite:///./products.db"
 
-# Engine
+# Engine - the 'heart' of SQLAlchemy
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
@@ -13,7 +13,7 @@ engine = create_engine(
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
+# Base class for your models to inherit from
 Base = declarative_base()
 
 # Dependency (for FastAPI routes)
