@@ -1,24 +1,43 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
 from typing import List
+from . import models, schemas, crud
+from .database import engine, get_db
+
+# Create DB tables
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="FastAPI Karate Demo")
 
-class Product(BaseModel):
-    id: int
-    name: str
-    price: float
-
-# simple in-memory store for Day 1
-products = [
-    {"id": 1, "name": "Laptop", "price": 700.0},
-    {"id": 2, "name": "Phone", "price": 300.0},
-]
-
 @app.get("/")
-def read_root():
-    return {"status": "ok", "message": "FastAPI Karate Demo"}
+def root():
+    return {"message": "FastAPI + Karate DSL Project"}
 
-@app.get("/products", response_model=List[Product])
-def list_products():
-    return products
+@app.get("/products", response_model=List[schemas.Product])
+def read_products(db: Session = Depends(get_db)):
+    return crud.get_products(db)
+
+@app.get("/products/{product_id}", response_model=schemas.Product)
+def read_product(product_id: int, db: Session = Depends(get_db)):
+    db_product = crud.get_product(db, product_id)
+    if db_product is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return db_product
+
+@app.post("/products", response_model=schemas.Product)
+def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    return crud.create_product(db, product)
+
+@app.put("/products/{product_id}", response_model=schemas.Product)
+def update_product(product_id: int, product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    updated = crud.update_product(db, product_id, product)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return updated
+
+@app.delete("/products/{product_id}")
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    deleted = crud.delete_product(db, product_id)
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"message": "Product deleted"}
